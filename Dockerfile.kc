@@ -1,0 +1,31 @@
+FROM ghcr.io/grpc-ecosystem/grpc-health-probe:v0.4.25@sha256:6cc1dc0af87b35db2ca5fa9b1fbbc389e7570d8ad90ff84a54b6f7ac35cdb423 as grpc_health_probe
+FROM --platform=linux/x86_64 golang:1.22.1-bookworm AS builder
+
+WORKDIR /src
+
+COPY . .
+
+RUN set -xe; \
+    CGO_ENABLED=0 GOOS=linux go build -a \
+    -buildmode=pie \
+    -ldflags "-extldflags -static-pie" \
+    -o /bin/openfga ./cmd/openfga \
+    ;
+
+FROM scratch
+
+WORKDIR /home/nonroot
+
+# Copy FGA binary
+COPY --from=builder /bin/openfga /openfga
+COPY --from=grpc_health_probe /ko-app/grpc-health-probe /usr/local/bin/grpc_health_probe
+COPY --from=builder /lib/x86_64-linux-gnu/libc.so.6 /lib/x86_64-linux-gnu/
+COPY --from=builder /lib64/ld-linux-x86-64.so.2 /lib64/
+
+# Expose FGA ports
+EXPOSE 8081
+EXPOSE 8080
+EXPOSE 3000
+EXPOSE 2112
+
+ENTRYPOINT ["/openfga"]

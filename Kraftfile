@@ -1,0 +1,7 @@
+spec: v0.6
+
+runtime: base:latest
+
+rootfs: ./Dockerfile.kc
+
+cmd: ["/openfga", "run", "--experimentals", "check-query-cache", "--check-query-cache-enabled", "--log-format=json", "--grpc-addr=127.0.0.1:8081", "--playground-enabled=false"]
